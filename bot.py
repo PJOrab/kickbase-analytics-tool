@@ -1,36 +1,12 @@
-# with open("kickbase_data.txt", "r") as file:
-#     lines = file.readlines()
-
-#     punkte = 0
-#     marktwert = 0
-#     spiele = 0
-
-#     for line in lines:
-#         data = line.strip().split(";")
-#         punkte += float(data[8])
-#         marktwert += float(data[5].replace(".", "").replace("€", ""))
-#         spiele += int(data[6])
-
-# punkte_average = punkte / len(lines)
-# marktwert_average = marktwert / len(lines)
-# average_ratio = (punkte / marktwert) * (spiele / len(lines)) * 1.5
-
-# print(f'Punkte Average: {punkte_average}\nMarktwert Average: {marktwert_average}\nRatio: {average_ratio}')
-
-vergleichswert = 0.000260725
+vergleichswert = 0.000260725 #average points/price value caculated from a 23/24 database
 from kickbase_api.kickbase import Kickbase
 from kickbase_api.models import player as spieler
 import time
 kickbase = Kickbase()
-user, leagues = kickbase.login("pjbaro@web.de", "2013kPuLzsm")
+user, leagues = kickbase.login("email", "password") #change the values to use the tool
 
-gk_player_count = 0
-def_player_count = 0
-mid_player_count = 0
-attack_player_count = 0
-
-def sortForWert(player):
-   return player['wert']
+def sortForWert(player): #function to sort the arrays below
+   return player['wert'] 
 
 def buy_players():
    if kickbase._is_token_valid():
