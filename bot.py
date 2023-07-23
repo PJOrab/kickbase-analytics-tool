@@ -2,100 +2,62 @@ vergleichswert = 0.000260725 #average points/price value caculated from a 23/24 
 from kickbase_api.kickbase import Kickbase
 from kickbase_api.models import player as spieler
 import time
+import os
+from dotenv import load_dotenv
+load_dotenv()
 kickbase = Kickbase()
-user, leagues = kickbase.login("email", "password") #change the values to use the tool
+user, leagues = kickbase.login(os.getenv('EMAIL'), os.getenv('PASSWORD')) #change the values in a .env file to use the tool
 
-def sortForWert(player): #function to sort the arrays below
-   return player['wert'] 
+def sortForWert(player):
+   return (-player['position'], player['wert']) #function to sort the arrays below
+
+def max_price_change(points, vergleichswert, price):
+    return (1 - vergleichswert / (points / price)) * price #calculates the maximum price change so that a player on the market is still 10% above average
 
 def buy_players():
    if kickbase._is_token_valid():
-      market = kickbase.market(leagues[0])
-      good_players = []
+      market = kickbase.market(leagues[0]) #market of the first league you are participating in
+      good_players = [] #array to store all players on the market you should buy
       for player in market.players:
          if player.totalPoints != 0:
-            wert = player.totalPoints / player.market_value
+            wert = player.totalPoints / player.price #calculating points / price ratio
          else:
-            wert = 1
-         if wert >= vergleichswert * 1.1 and wert != 1 and player.totalPoints / player.average_points >= 20 or player.price == 500000:
-            good_players.append({'spieler': player, 'wert': wert})
+            wert = 1 #ratio = 1 if the player has never produced any points / was promoted / is a new player in the bundesliga
+         if wert >= vergleichswert * 1.1 and wert != 1 and player.totalPoints / player.average_points >= 20 or player.price == 500000 or player.average_points >= 105: #you should buy: 10% over average, at least 20 games played, price at minimum (500k), average points 105+ (top 30 player in the game)
+            good_players.append({'spieler': player, 'wert': wert, 'position': player.position})
          
       good_players.sort(key=sortForWert, reverse=True)
       for i in good_players:
-         #print(f"{i['spieler'].first_name} {i['spieler'].last_name}: {i['wert']}")
-         kickbase.make_offer(i['spieler'].market_value * 1.01, i['spieler'], leagues[0])
+         print(f"{i['spieler'].first_name} {i['spieler'].last_name} ({i['spieler'].position.name}): {int(i['spieler'].price)} // Performance: {int((i['wert'] / vergleichswert)  * 100) - 100}% // Preis für 10%: {int(max_price_change(i['spieler'].totalPoints, vergleichswert, i['spieler'].price) + i['spieler'].price)}") #print all the information
+      print("\n")
 
 def sell_players():
    if kickbase._is_token_valid():
-      bad_players = []
-      for player in kickbase.league_user_players(leagues[0], user):
+      bad_players = [] #array to store the players you should sell
+      ranking = [] #array to store all players on your team
+      for player in kickbase.league_user_players(leagues[0], user): #looping through your team
          if player.totalPoints != 0:
-            wert = (player.totalPoints / player.market_value)
+            wert = (player.totalPoints / player.market_value) #calculating points / price ratio
          else:
-            wert = 1
-         if wert <= vergleichswert - vergleichswert * 0.2 and wert != 1 and player.totalPoints / player.average_points < 20 and player.market_value < 15000000 and player.average_points < 105:
-            if player.position == spieler.PlayerPosition.GOAL_KEEPER and gk_player_count > 1:
-               bad_players.append({'spieler': player, 'wert': wert})
-            elif player.position == spieler.PlayerPosition.DEFENDER and def_player_count > 3:
-               bad_players.append({'spieler': player, 'wert': wert})
-            elif player.position == spieler.PlayerPosition.MIDFIELDER and mid_player_count > 4:
-               bad_players.append({'spieler': player, 'wert': wert})
-            elif player.position == spieler.PlayerPosition.FORWARD and attack_player_count > 3:
-               bad_players.append({'spieler': player, 'wert': wert})
+            wert = 1 #ratio = 1 if the player has never produced any points / was promoted / is a new player in the bundesliga
+         ranking.append({'spieler': player, 'wert': wert, 'position': player.position})
+         if wert <= vergleichswert - vergleichswert * 0.2 and wert != 1 and player.totalPoints / player.average_points < 30 and player.market_value < 15000000 and player.average_points < 105 or player.status == spieler.PlayerStatus.INJURED: #you should sell: 20% under average, under 30 games played, price < 15 MIO, point average < 105 (not top 30 player), player injured
+            bad_players.append({'spieler': player, 'wert': wert, 'position': player.position})
 
       bad_players.sort(key=sortForWert, reverse=False)
+      ranking.sort(key=sortForWert, reverse=True)
       for i in bad_players:
-         print(f"{i['spieler'].first_name} {i['spieler'].last_name}: {i['wert']}")
-         #kickbase.add_to_market(i['spieler'].market_value * 1.03, i['spieler'], leagues[0])
+         print(f"{i['spieler'].first_name} {i['spieler'].last_name} ({i['spieler'].position.name}): {int(i['spieler'].market_value)} // Performance: {100 - int((i['wert'] / vergleichswert) * 100)}%") #print all the information
 
-# def line_up_players():
-#    if kickbase._is_token_valid():
-#       players_in_team = []
-#       line_up = []
-#       gk_counter = 0
-#       def_counter = 0
-#       mid_counter = 0
-#       attack_counter = 0
-#       counter = 0
-#       for player in kickbase.league_user_players(leagues[0], user):
-#          points = player.average_points
-#          players_in_team.append({'spieler': player, 'punkte': points})
-#       players_in_team.sort(key=sortForWert, reverse=True)
-#       for i in players_in_team:
-#          if i['spieler'].position == player.position.GOAL_KEEPER and gk_counter < 1 and counter < 11:
-#             line_up.append(i['spieler'])
-#             gk_counter += 1
-#             counter += 1
-#          if i['spieler'].position == player.position.DEFENDER and def_counter < 3 and counter < 11:
-#             line_up.append(i['spieler'])
-#             def_counter += 1
-#             counter += 1
-#          if i['spieler'].position == player.position.MIDFIELDER and def_counter < 4 and counter < 11:
-#             line_up.append(i['spieler'])
-#             mid_counter += 1
-#             counter += 1
-#          if i['spieler'].position == player.position.FORWARD and attack_counter < 3 and counter < 11:
-#             line_up.append(i['spieler'])
-#             attack_counter += 1
-#             counter += 1
-#       my_lineup = lineup.LineUp(line_up)
-#       kickbase.set_line_up(my_lineup, leagues[0])
-#       kickbase.
+      print("\nRanking:\n")
+      for i in ranking:
+         print(f"{i['spieler'].first_name} {i['spieler'].last_name} ({i['spieler'].position.name}): {int(i['spieler'].market_value)} // Performance: {int((i['wert'] / vergleichswert) * 100)-100}%") #print ranking of all your players
 
 
 while (True):
-   for i in kickbase.league_user_players(leagues[0], user):
-      if i.position == spieler.PlayerPosition.GOAL_KEEPER:
-         gk_player_count += 1
-      if i.position == spieler.PlayerPosition.MIDFIELDER:
-         mid_player_count += 1
-      if i.position == spieler.PlayerPosition.DEFENDER:
-         def_player_count += 1
-      if i.position == spieler.PlayerPosition.FORWARD:
-         attack_player_count += 1
 
+   print("\nDiese Spieler solltest du kaufen:\n")
    buy_players()
+   print("Diese Spieler solltest du verkaufen:\n")
    sell_players()
-   time.sleep(3600)
-
-# line_up_players()
+   time.sleep(3600) #if script is running all the time, printing information every hour
