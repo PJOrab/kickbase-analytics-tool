@@ -28,7 +28,8 @@ def buy_players():
          
       good_players.sort(key=sortForWert, reverse=True)
       for i in good_players:
-         print(f"{i['spieler'].first_name} {i['spieler'].last_name} ({i['spieler'].position.name}): {int(i['spieler'].price)} // Performance: {int((i['wert'] / vergleichswert)  * 100) - 100}% // Preis für 10%: {int(max_price_change(i['spieler'].totalPoints, vergleichswert, i['spieler'].price) + i['spieler'].price)}") #print all the information
+         formatted_num = "{:,}".format(int(i['spieler'].price))
+         print(f"{i['spieler'].first_name} {i['spieler'].last_name} ({i['spieler'].position.name}): {formatted_num} // Performance: {int((i['wert'] / vergleichswert)  * 100) - 100}% // Preis für 10%: {int(max_price_change(i['spieler'].totalPoints, vergleichswert, i['spieler'].price) + i['spieler'].price)}") #print all the information
       print("\n")
 
 def sell_players():
@@ -46,12 +47,15 @@ def sell_players():
 
       bad_players.sort(key=sortForWert, reverse=False)
       ranking.sort(key=sortForWert, reverse=True)
+
       for i in bad_players:
-         print(f"{i['spieler'].first_name} {i['spieler'].last_name} ({i['spieler'].position.name}): {int(i['spieler'].market_value)} // Performance: {100 - int((i['wert'] / vergleichswert) * 100)}%") #print all the information
+         formatted_num = "{:,}".format(int(i['spieler'].market_value))
+         print(f"{i['spieler'].first_name} {i['spieler'].last_name} ({i['spieler'].position.name}): {formatted_num} // Performance: {100 - int((i['wert'] / vergleichswert) * 100)}%") #print all the information
 
       print("\nRanking:\n")
       for i in ranking:
-         print(f"{i['spieler'].first_name} {i['spieler'].last_name} ({i['spieler'].position.name}): {int(i['spieler'].market_value)} // Performance: {int((i['wert'] / vergleichswert) * 100)-100}%") #print ranking of all your players
+         formatted_num = "{:,}".format(int(i['spieler'].market_value))
+         print(f"{i['spieler'].first_name} {i['spieler'].last_name} ({i['spieler'].position.name}): {formatted_num} // Performance: {int((i['wert'] / vergleichswert) * 100)-100}%") #print ranking of all your players
 
 
 while (True):
